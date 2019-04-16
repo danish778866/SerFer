@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import redis
 import pickle
+from timeit import default_timer
 
 # INPUT AND OUTPUT SIZES
 input_channels = 3
@@ -58,8 +59,8 @@ def merge_imgs(split_imgs, overlap):
     h = sum([s[0].shape[2] for s in split_imgs])
     w = sum([s.shape[3] for s in split_imgs[0]])
     c = split_imgs[0][0].shape[1]
-    print("merged size without overlap : ", h, "  ",w)
-    print("merged size : ", h, "  ",w)
+    print("merged size without overlap : ", h, "  ",w, " ", c)
+    print("merged size : ", h, "  ",w," ", c)
     img = torch.empty(1,c,h, w, dtype = torch.float)
     height = 0
     
@@ -70,35 +71,41 @@ def merge_imgs(split_imgs, overlap):
             width_end = width + s.shape[3]
             img[:, :, height:height_end, width:width_end] = s
             width += s.shape[3]    
-            height += split[0].shape[2]
+        height += split[0].shape[2]
+    print("Merged: ", img.shape)
     return img  
 
 
 def all_keys_generated(lambda_keys, r):
     merge = True
     intermediate_values = []
+    #print(lambda_keys)
     for idx, key in enumerate(lambda_keys):
         if idx == 0:
             current_values = []
         elif idx == 2:
             intermediate_values.append(current_values)
             current_values = []
-        print("Checking for key " + key)
         value = r.get(key)
         if value == None:
             merge = False
+            #print("Checking for key " + key)
             break
         else:
             current_values.append(value)
+    if merge:
+        intermediate_values.append(current_values)
     return merge, intermediate_values
 
 def deserialize_to_tensor(intermediate_values):
     for i, inter in enumerate(intermediate_values):
         for j, val in enumerate(inter):
             intermediate_values[i][j] = pickle.loads(intermediate_values[i][j])
+            print("Inter: ", intermediate_values[i][j].shape, " ", i, " ", j)
     return intermediate_values
 
 def main():
+    start_time = default_timer()
     my_img = np.random.randn(3, 224,224)
     img = torch.tensor(my_img, dtype = torch.float).view(-1, 3, 224,224)
     fn_names = ["alex0", "alex1", "alex2"]
@@ -117,6 +124,7 @@ def main():
                 print("Going for split " + str(j))
                 key_name = image_name + splits[k] + str(idx) + driver_suffix
                 lambda_key_name = image_name + splits[k] + str(idx + 1)
+                k = k + 1
                 lambda_keys.append(lambda_key_name)
                 value = pickle.dumps(s)
                 r.set(key_name, value)
@@ -139,7 +147,7 @@ def main():
     lambda_key_name = image_name + "4"
     value = pickle.dumps(img)
     r.set(key_name, value)
-    payload="{\"key\":" + key_name + "}"
+    payload="{\"key\": \"" + key_name + "\"}"
     fn_name = "alex2"
     response = lambda_client.invoke(
                FunctionName=fn_name,
@@ -151,6 +159,8 @@ def main():
         f_out = r.get(lambda_key_name)
     f_out_tensor = pickle.loads(f_out)
     print(f_out_tensor.shape)
+    duration = default_timer() - start_time
+    print("Time: ", duration)
 
 if __name__ == "__main__":
     main()
