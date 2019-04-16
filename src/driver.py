@@ -1,43 +1,156 @@
 import boto3
+import numpy as np
+import torch
+import redis
+import pickle
 
-s3_client = boto3.client('s3')
+# INPUT AND OUTPUT SIZES
+input_channels = 3
+W = 224  #width of input
+H = 224  #height of input
 
-def split_input_img(img_path):
-    """
-        The user given Query, i.e. Image is stored at img_path
-        This image needs to be split (Data Parallelism) for parallel processing
-        by Lambda Layers.
-    """
+split_input_sizes = [(127, 127), (8, 8), (3,3)]
+split_output_sizes = [(7,7), (3,3), (10,10)]
+overlap_sizes = [(1,1), (0,0), (0,0)]
 
-def merge_images(merge_order, file_prefix, layer_number):
+lambda_client = boto3.client('lambda')
 
-def upload_file_to_s3(file_path, bucket_name, key_name):
-    s3_client.upload_file(file_path,bucket_name, key_name)
+def split_image(img, inp_size):
+    '''
+    img - 4d tensor input of shape N x C x H x W
+    
+    '''
+    coord = {}
+    H = img.shape[2]
+    W  = img.shape[3]
+    h_2 = H // 2
+    w_2  = W // 2
+    
+    coord['tl'] = [0 , inp_size[0], 0, inp_size[1]]
+    coord['tr'] = [0, inp_size[0], (W-inp_size[1]), W]
+    coord['bl'] = [(H-inp_size[1]), H,  0, (inp_size[1])]
+    coord['br'] = [(H-inp_size[1]), H,  (W-inp_size[1]), W]
+    #print(coord)
+    var = coord['tl']
+    #print(var)
+    #img_tl_temp = torch.tensor(img[(var[0]):(var[1]), (var[2]):(var[3])], dtype = torch.float)
+    img_tl = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
+    print(img_tl.shape)
+    #img_tl = img_tl_temp.view(-1, 1, h_2+delta, w_2+delta)
+    
+    var = coord['tr']
+    img_tr = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
+    print(img_tr.shape)
+    
+    var = coord['bl']
+    img_bl = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
+    print(img_bl.shape)
+    
+    var = coord['br']
+    img_br = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
+    print(img_br.shape)
+    
+    split_imgs = [[img_tl, img_tr], [img_bl, img_br]]
+    return split_imgs
 
-def download_file_from_s3(file_path, bucket_name, key_name):
-    s3_client.download_file(bucket_name, key_name, file_path)
 
-def poll_for_merge(bucket_name, file_prefix, num_files):
-    response = s3_client.list_objects(Bucket=bucket_name, Prefix=file_prefix)
-    merge = False
-    intermediate_files = []
-    if len(response['Contents']) == num_files:
-        merge = True
-        intermediate_files = response['Contents']
-    return merge, intermediate_files
+def merge_imgs(split_imgs, overlap):
+    h = sum([s[0].shape[2] for s in split_imgs])
+    w = sum([s.shape[3] for s in split_imgs[0]])
+    c = split_imgs[0][0].shape[1]
+    print("merged size without overlap : ", h, "  ",w)
+    print("merged size : ", h, "  ",w)
+    img = torch.empty(1,c,h, w, dtype = torch.float)
+    height = 0
+    
+    for i, split in enumerate(split_imgs):
+        width = 0
+        for j, s in enumerate(split):
+            height_end = height + s.shape[2]
+            width_end = width + s.shape[3]
+            img[:, :, height:height_end, width:width_end] = s
+            width += s.shape[3]    
+            height += split[0].shape[2]
+    return img  
+
+
+def all_keys_generated(lambda_keys, r):
+    merge = True
+    intermediate_values = []
+    for idx, key in enumerate(lambda_keys):
+        if idx == 0:
+            current_values = []
+        elif idx == 2:
+            intermediate_values.append(current_values)
+            current_values = []
+        print("Checking for key " + key)
+        value = r.get(key)
+        if value == None:
+            merge = False
+            break
+        else:
+            current_values.append(value)
+    return merge, intermediate_values
+
+def deserialize_to_tensor(intermediate_values):
+    for i, inter in enumerate(intermediate_values):
+        for j, val in enumerate(inter):
+            intermediate_values[i][j] = pickle.loads(intermediate_values[i][j])
+    return intermediate_values
 
 def main():
-    """
-        This is the main driver function. The driver executes the following steps:
-            1. Get the user query, i.e. Image.
-            2. Decide the flow of computation.
-            3. Split the input image and upload to S3 (This triggers Lambda Layer 1).
-            4. Poll S3 bucket to see if all intermediate files are ready for merge.
-            5. Merge intermediate files.
-            6. Split the merged file for next Lambda layer and upload to S3.
-            7. Repeat steps 4 - 7 till the end of the network.
-    """
+    my_img = np.random.randn(3, 224,224)
+    img = torch.tensor(my_img, dtype = torch.float).view(-1, 3, 224,224)
+    fn_names = ["alex0", "alex1", "alex2"]
+    driver_suffix = ".some"
+    image_name = "image"
+    splits = ["tl", "tr", "bl", "br"]
+    print("Started...")
+    r = redis.StrictRedis(host='serfer-redis.me7jbk.ng.0001.use2.cache.amazonaws.com', port=6379, db=0)
+    for idx, fn_name in enumerate(fn_names[0:2]):
+        print("iter : ", idx)
+        s_imgs = split_image(img, split_input_sizes[idx])
+        k = 0
+        lambda_keys = []
+        for i, split in enumerate(s_imgs):
+            for j, s in enumerate(split):
+                print("Going for split " + str(j))
+                key_name = image_name + splits[k] + str(idx) + driver_suffix
+                lambda_key_name = image_name + splits[k] + str(idx + 1)
+                lambda_keys.append(lambda_key_name)
+                value = pickle.dumps(s)
+                r.set(key_name, value)
+                payload="{\"key\": \"" + key_name + "\"}"
+                print(payload)
+                response = lambda_client.invoke(
+                            FunctionName=fn_name,
+                            InvocationType="Event",
+                            Payload=payload
+                        )
+                print("Done split " + str(j))
+        print("Done iter : ", idx)
+        merge, intermediate_values = all_keys_generated(lambda_keys, r)
+        while not merge:
+            merge, intermediate_values = all_keys_generated(lambda_keys, r)
+        # What is overlap
+        intermediate_values = deserialize_to_tensor(intermediate_values)
+        img = merge_imgs(intermediate_values, overlap_sizes[idx])
+    key_name = image_name + "3" + driver_suffix
+    lambda_key_name = image_name + "4"
+    value = pickle.dumps(img)
+    r.set(key_name, value)
+    payload="{\"key\":" + key_name + "}"
+    fn_name = "alex2"
+    response = lambda_client.invoke(
+               FunctionName=fn_name,
+               InvocationType="Event",
+               Payload=payload
+           )
+    f_out = r.get(lambda_key_name)
+    while f_out == None:
+        f_out = r.get(lambda_key_name)
+    f_out_tensor = pickle.loads(f_out)
+    print(f_out_tensor.shape)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
