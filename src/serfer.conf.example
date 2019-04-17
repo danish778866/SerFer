@@ -1,0 +1,14 @@
+[Storage]
+type = redis
+host = somehost
+port = someport
+
+[Lambda]
+fn_names = alex0,alex1,alex2
+fn_role = somerole
+layers = layer1,layer2
+runtime = someruntime
+subnet = somesubnet
+security_group = somegroup
+
+[Driver]

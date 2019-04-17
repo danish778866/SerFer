@@ -4,8 +4,6 @@ import torch
 import redis
 import pickle
 from timeit import default_timer
-from storage import SerferRedisStorage
-from utils import SerferConfig
 
 # INPUT AND OUTPUT SIZES
 input_channels = 3
