@@ -1,26 +1,26 @@
-import redis
+#import redis
 import pickle
 from abc import ABC, abstractmethod
 
 class SerferStorage(ABC):
 
-    @abc.abstractmethod
+    @abstractmethod
     def prepare_storage(self):
         pass
 
-    @abs.abstractmethod
+    @abstractmethod
     def get_storage_handle(self):
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def write_to_store(self, key, data):
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def read_from_store(self, key):
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def check_if_exists(self, key):
         pass
 
@@ -30,11 +30,14 @@ class SerferRedisStorage(SerferStorage):
         self.type = "redis"
         self.host = host
         self.port = port
-        self.conn = prepare_storage()
+        self.conn = self.prepare_storage()
         self.persisted_values = []
         self.current_values = []
         self.group_by = 0
         self.persist = False
+
+    def get_storage_handle(self):
+        return conn
 
     def set_group_by(group_by):
         self.group_by = group_by
@@ -62,14 +65,15 @@ class SerferRedisStorage(SerferStorage):
 
     def check_if_exists(self, key):
         exists = True
-        value = read_from_store(key)
+        value = self.read_from_store(key)
         if value == None:
             exists = False
-        elif persist:
+        elif self.persist:
             self.current_values.append(value)
             if len(current_values) == group_by:
                 self.persisted_values.append(current_values)
                 self.current_values = []
+        return exists
 
     def purge_persisted_values(self):
         self.persisted_values = []
