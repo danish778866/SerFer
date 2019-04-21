@@ -18,5 +18,5 @@ class SerferConfig:
             section_data = self.config[section]
         return section_data
 
-s = SerferConfig("serfer.conf.example")
-print(s.get_section("Lambda")["fn_names"])
+#s = SerferConfig("serfer.conf.example")
+#print(s.get_section("Lambda")["fn_names"])

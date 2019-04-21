@@ -14,16 +14,16 @@ class Driver:
         self.storage_config = self.config.get_section('Storage')
         self.driver_config = self.config.get_section('Driver')
         self.lambda_config = self.config.get_section('Lambda')
-        self.storage_class_dict = {"redis": SerferRedisStorage}
+        self.storage_class_dict = {"redis": "SerferRedisStorage"}
         self.redis_storage_class = getattr(storage, self.storage_class_dict[self.storage_config["type"]])
-        self.storage = redis_storage_class(self.storage_config["host"], self.storage_config["port"])
+        self.storage = self.redis_storage_class(self.storage_config["host"], self.storage_config["port"])
         self.conn = self.storage.get_storage_handle()
         self.query = query
         self.id = id
-        self.storage.persist()
+        self.storage.set_persist(True)
         self.lambda_client = boto3.client('lambda')
 
-    def barrier(lambda_keys):
+    def barrier(self, lambda_keys):
         self.storage.purge_persisted_values()
         wait = False
         for key in lambda_keys:
@@ -32,7 +32,7 @@ class Driver:
                 break
         return wait
 
-    def merge_imgs(split_imgs, overlap):
+    def merge_imgs(self, split_imgs, overlap):
         h = sum([s[0].shape[2] for s in split_imgs])
         w = sum([s.shape[3] for s in split_imgs[0]])
         c = split_imgs[0][0].shape[1]
@@ -52,7 +52,7 @@ class Driver:
         print("Merged: ", img.shape)
         return img
 
-    def split_image(img, inp_size):
+    def split_image(self, img, inp_size):
         '''
         img - 4d tensor input of shape N x C x H x W
         
@@ -90,18 +90,28 @@ class Driver:
         split_imgs = [[img_tl, img_tr], [img_bl, img_br]]
         return split_imgs
 
+    def convert_to_int(self, data):
+        for i, d in enumerate(data):
+            size_list = d.split(",")
+            size_list[0] = int(size_list[0])
+            size_list[1] = int(size_list[1])
+            data[i] = size_list
 
-    def run():
+
+    def run(self):
         start_time = default_timer()
-        img = query
+        img = self.query
         fn_names = self.lambda_config["fn_names"].split(",")
         driver_suffix = self.driver_config["suffix"]
         image_name = self.id
         splits = self.driver_config["splits"].split(",")
         split_input_sizes = self.driver_config["split_input_sizes"].split("|")
+        self.convert_to_int(split_input_sizes)
         overlap_sizes = self.driver_config["overlap_sizes"].split("|")
+        self.convert_to_int(overlap_sizes)
+        self.storage.set_group_by(2)
         for idx, fn_name in enumerate(fn_names[0:2]):
-            s_imgs = split_image(img, split_input_sizes[idx])
+            s_imgs = self.split_image(img, split_input_sizes[idx])
             k = 0
             lambda_keys = []
             for i, split in enumerate(s_imgs):
@@ -110,7 +120,7 @@ class Driver:
                     lambda_key_name = image_name + splits[k] + str(idx + 1)
                     k = k + 1
                     lambda_keys.append(lambda_key_name)
-                    self.conn.write_to_store(key_name, s)
+                    self.storage.write_to_store(key_name, s)
                     payload="{\"key\": \"" + key_name + "\"}"
                     response = self.lambda_client.invoke(
                                 FunctionName=fn_name,
@@ -120,10 +130,10 @@ class Driver:
             while self.barrier(lambda_keys):
                 continue
             intermediate_values = self.storage.get_persisted_values()
-            img = merge_imgs(intermediate_values, overlap_sizes[idx])
+            img = self.merge_imgs(intermediate_values, overlap_sizes[idx])
         key_name = image_name + "3" + driver_suffix
         lambda_key_name = image_name + "4"
-        self.conn.write_to_store(key_name, img)
+        self.storage.write_to_store(key_name, img)
         payload="{\"key\": \"" + key_name + "\"}"
         fn_name = "alex2"
         response = self.lambda_client.invoke(
@@ -131,10 +141,10 @@ class Driver:
                    InvocationType="Event",
                    Payload=payload
                )
-        self.storage.group_by(1)
+        self.storage.set_group_by(1)
         while self.barrier([lambda_key_name]):
             continue
         f_out = self.storage.get_persisted_values()[0][0]
-        print(f_out_tensor.shape)
+        print(f_out.shape)
         duration = default_timer() - start_time
         print("Time: ", duration)
