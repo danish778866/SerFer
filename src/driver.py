@@ -3,18 +3,19 @@ import numpy as np
 import torch
 import redis
 import pickle
+import re
 from timeit import default_timer
 import storage
 from utils import SerferConfig
 
 class Driver:
-    def __init__(self, config_file, query, id):
+    def __init__(self, config_file, query, id, logfile):
         self.config_file = config_file
         self.config = SerferConfig(config_file)
         self.storage_config = self.config.get_section('Storage')
         self.driver_config = self.config.get_section('Driver')
         self.lambda_config = self.config.get_section('Lambda')
-        self.storage_class_dict = {"redis": "SerferRedisStorage"}
+        self.storage_class_dict = {"redis": "SerferRedisStorage", "memcache": "SerferMemcacheStorage"}
         self.redis_storage_class = getattr(storage, self.storage_class_dict[self.storage_config["type"]])
         self.storage = self.redis_storage_class(self.storage_config["host"], self.storage_config["port"])
         self.conn = self.storage.get_storage_handle()
@@ -22,12 +23,20 @@ class Driver:
         self.id = id
         self.storage.set_persist(True)
         self.lambda_client = boto3.client('lambda')
+        self.logfile = logfile
+        self.file_handle = open(logfile, "w")
+        self.barrier_num = 0
 
     def barrier(self, lambda_keys):
         self.storage.purge_persisted_values()
         wait = False
+        self.barrier_num = self.barrier_num + 1
         for key in lambda_keys:
             if not self.storage.check_if_exists(key):
+                if self.barrier_num == 100:
+                    self.file_handle.write("Waiting for key " + str(key))
+                    self.file_handle.write("\n")
+                    self.barrier_num = 0
                 wait = True
                 break
         return wait
@@ -36,8 +45,8 @@ class Driver:
         h = sum([s[0].shape[2] for s in split_imgs])
         w = sum([s.shape[3] for s in split_imgs[0]])
         c = split_imgs[0][0].shape[1]
-        print("merged size without overlap : ", h, "  ",w, " ", c)
-        print("merged size : ", h, "  ",w," ", c)
+        self.file_handle.write("merged size without overlap : " + str(h) + " " + str(w) + " " + str(c))
+        self.file_handle.write("\n")
         img = torch.empty(1,c,h, w, dtype = torch.float)
         height = 0
         
@@ -49,7 +58,8 @@ class Driver:
                 img[:, :, height:height_end, width:width_end] = s
                 width += s.shape[3]    
             height += split[0].shape[2]
-        print("Merged: ", img.shape)
+        self.file_handle.write("Merged: " + str(img.shape))
+        self.file_handle.write("\n")
         return img
 
     def split_image(self, img, inp_size):
@@ -72,20 +82,24 @@ class Driver:
         #print(var)
         #img_tl_temp = torch.tensor(img[(var[0]):(var[1]), (var[2]):(var[3])], dtype = torch.float)
         img_tl = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
-        print(img_tl.shape)
+        self.file_handle.write(str(img_tl.shape))
+        self.file_handle.write("\n")
         #img_tl = img_tl_temp.view(-1, 1, h_2+delta, w_2+delta)
         
         var = coord['tr']
         img_tr = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
-        print(img_tr.shape)
+        self.file_handle.write(str(img_tr.shape))
+        self.file_handle.write("\n")
         
         var = coord['bl']
         img_bl = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
-        print(img_bl.shape)
+        self.file_handle.write(str(img_bl.shape))
+        self.file_handle.write("\n")
         
         var = coord['br']
         img_br = img[:, : , (var[0]):(var[1]), (var[2]):(var[3])]
-        print(img_br.shape)
+        self.file_handle.write(str(img_br.shape))
+        self.file_handle.write("\n")
         
         split_imgs = [[img_tl, img_tr], [img_bl, img_br]]
         return split_imgs
@@ -97,6 +111,9 @@ class Driver:
             size_list[1] = int(size_list[1])
             data[i] = size_list
 
+    def my_replace(self, match):
+        match = match.group()
+        return str(int(match) + 1)
 
     def run(self):
         start_time = default_timer()
@@ -116,8 +133,9 @@ class Driver:
             lambda_keys = []
             for i, split in enumerate(s_imgs):
                 for j, s in enumerate(split):
-                    key_name = image_name + splits[k] + str(idx) + driver_suffix
-                    lambda_key_name = image_name + splits[k] + str(idx + 1)
+                    key_name = image_name + splits[k] +  str(idx) +  driver_suffix
+                    lambda_key_name = re.sub('[0-9]+', self.my_replace, key_name)
+                    lambda_key_name = lambda_key_name.split('.')[0]
                     k = k + 1
                     lambda_keys.append(lambda_key_name)
                     self.storage.write_to_store(key_name, s)
@@ -131,8 +149,9 @@ class Driver:
                 continue
             intermediate_values = self.storage.get_persisted_values()
             img = self.merge_imgs(intermediate_values, overlap_sizes[idx])
-        key_name = image_name + "3" + driver_suffix
-        lambda_key_name = image_name + "4"
+        key_name = image_name +  "3" +  driver_suffix
+        lambda_key_name = re.sub('[0-9]+', self.my_replace, key_name)
+        lambda_key_name = lambda_key_name.split('.')[0]
         self.storage.write_to_store(key_name, img)
         payload="{\"key\": \"" + key_name + "\"}"
         fn_name = "alex2"
@@ -145,6 +164,10 @@ class Driver:
         while self.barrier([lambda_key_name]):
             continue
         f_out = self.storage.get_persisted_values()[0][0]
-        print(f_out.shape)
+        self.file_handle.write(str(f_out.shape))
+        self.file_handle.write("\n")
         duration = default_timer() - start_time
-        print("Time: ", duration)
+        self.file_handle.write("Time: " + str(duration))
+        self.file_handle.write("\n")
+        self.file_handle.close()
+        return duration
