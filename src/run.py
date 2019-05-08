@@ -18,13 +18,13 @@ def worker(img_name):
     print(img_name + " took " + str(duration) + " seconds.")
     
 if __name__ == "__main__":
-    dir_name = "data/*"
+    dir_name = sys.argv[1]    
     files = [f for f in glob.glob(dir_name)]
     print(files)
     jobs = []
     for f in files:
         p = multiprocessing.Process(target=worker, args=(f,))
-        sleep(3)
+        #sleep(3)
         jobs.append(p)
         p.start()
 

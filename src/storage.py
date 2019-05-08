@@ -28,7 +28,7 @@ class SerferStorage(ABC):
 
 class SerferRedisStorage(SerferStorage):
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, mode):
         self.type = "redis"
         self.host = host
         self.port = port
@@ -37,6 +37,7 @@ class SerferRedisStorage(SerferStorage):
         self.current_values = []
         self.group_by = 0
         self.persist = False
+        self.mode = mode
 
     def get_storage_handle(self):
         return self.conn
@@ -51,7 +52,8 @@ class SerferRedisStorage(SerferStorage):
         return self.persisted_values
 
     def prepare_storage(self):
-        conn = redis.StrictRedis(host=self.host, port=self.port, db=0)
+        if self.mode == "single":
+            conn = redis.StrictRedis(host=self.host, port=self.port, db=0)
         return conn
 
     def write_to_store(self, key, data):
