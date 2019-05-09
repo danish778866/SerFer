@@ -7,6 +7,7 @@ import logging
 import glob
 from PIL import Image
 from time import sleep
+import threading
 def worker(img_name):
     img = Image.open(img_name)
     img = img.resize((224, 224))
@@ -22,11 +23,17 @@ if __name__ == "__main__":
     files = [f for f in glob.glob(dir_name)]
     print(files)
     jobs = []
+    count = 0
     for f in files:
+        #t = threading.Thread(target=worker, args=(f,))
+        #t.start()
         p = multiprocessing.Process(target=worker, args=(f,))
         #sleep(3)
         jobs.append(p)
         p.start()
+        count += 1
+        if count % 500 == 0:
+            sleep(2)
 
 
 #my_img = np.random.randn(3, 224,224)

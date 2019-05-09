@@ -37,11 +37,17 @@ class Driver:
 
     def write_microbenchmarks(self):
         self.file_handle.write("Poll Time: " + str(self.poll_time))
+        self.file_handle.write("\n")
         self.file_handle.write("Layer Times: " + str(self.layer_times))
+        self.file_handle.write("\n")
         self.file_handle.write("Store Push Time: " + str(self.store_push_time))
+        self.file_handle.write("\n")
         self.file_handle.write("Store Pull Time: " + str(self.store_pull_time))
+        self.file_handle.write("\n")
         self.file_handle.write("Merge Time: " + str(self.merge_time))
+        self.file_handle.write("\n")
         self.file_handle.write("Split Time: " + str(self.split_time))
+        self.file_handle.write("\n")
 
     def update_microbenchmarks(self, microbenchmark, time_taken):
         if microbenchmark == "poll":

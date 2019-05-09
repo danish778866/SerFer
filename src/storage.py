@@ -1,8 +1,8 @@
 import redis
 import pickle
 from abc import ABC, abstractmethod
-import elasticache_auto_discovery
-from pymemcache.client.hash import HashClient
+#import elasticache_auto_discovery
+#from pymemcache.client.hash import HashClient
 
 class SerferStorage(ABC):
 
@@ -29,6 +29,7 @@ class SerferStorage(ABC):
 class SerferRedisStorage(SerferStorage):
 
     def __init__(self, host, port, mode):
+        self.mode = mode
         self.type = "redis"
         self.host = host
         self.port = port
@@ -37,7 +38,6 @@ class SerferRedisStorage(SerferStorage):
         self.current_values = []
         self.group_by = 0
         self.persist = False
-        self.mode = mode
 
     def get_storage_handle(self):
         return self.conn
