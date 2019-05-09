@@ -65,7 +65,11 @@ class Driver:
         wait = False
         self.barrier_num = self.barrier_num + 1
         for key in lambda_keys:
-            if not self.storage.check_if_exists(key):
+            micro_start_time = default_timer()
+            key_present = self.storage.check_if_exists(key)
+            micro_end_time = default_timer()
+            self.update_microbenchmarks("set", (micro_end_time - micro_start_time))
+            if not key_present:
                 if self.barrier_num == 100:
                     self.file_handle.write("Waiting for key " + str(key))
                     self.file_handle.write("\n")
