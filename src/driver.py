@@ -17,7 +17,6 @@ class Driver:
         self.lambda_config = self.config.get_section('Lambda')
         self.storage_class_dict = {"redis": "SerferRedisStorage", "memcache": "SerferMemcacheStorage"}
         self.redis_storage_class = getattr(storage, self.storage_class_dict[self.storage_config["type"]])
-        print(self.storage_config["mode"])
         self.storage = self.redis_storage_class(self.storage_config["host"], self.storage_config["port"], self.storage_config["mode"])
         self.conn = self.storage.get_storage_handle()
         self.query = query
@@ -67,6 +66,7 @@ class Driver:
 
 
     def barrier(self, lambda_keys):
+        rerun_key = ""
         self.storage.purge_persisted_values()
         wait = False
         self.barrier_num = self.barrier_num + 1
@@ -74,15 +74,16 @@ class Driver:
             micro_start_time = default_timer()
             key_present = self.storage.check_if_exists(key)
             micro_end_time = default_timer()
-            self.update_microbenchmarks("set", (micro_end_time - micro_start_time))
+            self.update_microbenchmarks("get", (micro_end_time - micro_start_time))
             if not key_present:
-                if self.barrier_num == 100:
+                if self.barrier_num == 10000:
                     self.file_handle.write("Waiting for key " + str(key))
                     self.file_handle.write("\n")
                     self.barrier_num = 0
+                    rerun_key = key
                 wait = True
                 break
-        return wait
+        return wait, rerun_key
 
     def merge_imgs(self, split_imgs, overlap):
         h = sum([s[0].shape[2] for s in split_imgs])
@@ -198,8 +199,18 @@ class Driver:
                                 Payload=payload
                             )
             micro_start_time = default_timer()
-            while self.barrier(lambda_keys):
-                continue
+            wait_for_barrier, rerun_key = self.barrier(lambda_keys)
+            while wait_for_barrier:
+                if rerun_key != "":
+                    self.file_handle.write("Rerunning " + str(rerun_key) + "...")
+                    self.file_handle.write("\n")
+                    payload="{\"key\": \"" + rerun_key + "\"}"
+                    response = self.lambda_client.invoke(
+                                FunctionName=fn_name,
+                                InvocationType="Event",
+                                Payload=payload
+                            )
+                wait_for_barrier, rerun_key = self.barrier(lambda_keys)
             micro_end_time = default_timer()
             self.update_microbenchmarks("poll", (micro_end_time - micro_start_time))
             end_layer_time = default_timer()
@@ -227,8 +238,18 @@ class Driver:
                )
         self.storage.set_group_by(1)
         micro_start_time = default_timer()
-        while self.barrier([lambda_key_name]):
-            continue
+        wait_for_barrier, rerun_key = self.barrier([lambda_key_name])
+        while wait_for_barrier:
+            if rerun_key != "":
+                self.file_handle.write("Rerunning " + str(rerun_key) + "...")
+                self.file_handle.write("\n")
+                payload="{\"key\": \"" + rerun_key + "\"}"
+                response = self.lambda_client.invoke(
+                            FunctionName=fn_name,
+                            InvocationType="Event",
+                            Payload=payload
+                        )
+            wait_for_barrier, rerun_key = self.barrier([lambda_key_name])
         micro_end_time = default_timer()
         self.update_microbenchmarks("poll", (micro_end_time - micro_start_time))
         end_layer_time = default_timer()
@@ -241,4 +262,7 @@ class Driver:
         self.file_handle.write("Time: " + str(duration))
         self.file_handle.write("\n")
         self.file_handle.close()
-        return duration
+        stats = "Duration:" + str(duration) + ":Push:" + str(self.store_push_time) + ":Pull:" + str(self.store_pull_time) \
+                + ":Poll:" + str(self.poll_time) + ":Merge:" + str(self.merge_time) + ":Split:" + str(self.split_time) \
+                + ":Layers:" + str(self.layer_times)
+        return stats

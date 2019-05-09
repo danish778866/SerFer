@@ -7,6 +7,7 @@ import logging
 import glob
 from PIL import Image
 from time import sleep
+from timeit import default_timer
 import threading
 def worker(img_name):
     img = Image.open(img_name)
@@ -15,13 +16,15 @@ def worker(img_name):
     img = torch.tensor(data, dtype = torch.float).view(-1, 3, 224,224)
     log_name = "logs/" + img_name.split(".")[0] + ".log"
     d = Driver("serfer.conf", img, img_name.split('.')[0], log_name)
-    duration = d.run()
-    print(img_name + " took " + str(duration) + " seconds.")
+    print("Running " + str(img_name))
+    stats = d.run()
+    print(img_name + " Stats=" + stats)
     
 if __name__ == "__main__":
+    start_time = default_timer()
     dir_name = sys.argv[1]    
+    num_files = int(sys.argv[2])
     files = [f for f in glob.glob(dir_name)]
-    print(files)
     jobs = []
     count = 0
     for f in files:
@@ -32,8 +35,10 @@ if __name__ == "__main__":
         jobs.append(p)
         p.start()
         count += 1
-        if count % 500 == 0:
-            sleep(2)
+        if count == num_files:
+            break
+        #if count % 500 == 0:
+            #sleep(2)
 
 
 #my_img = np.random.randn(3, 224,224)
