@@ -8,7 +8,7 @@ from timeit import default_timer
 import storage
 from utils import SerferConfig
 
-class Driver:
+class PollDriver:
     def __init__(self, config_file, query, id, logfile):
         self.config_file = config_file
         self.config = SerferConfig(config_file)
