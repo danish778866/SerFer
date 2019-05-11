@@ -1,0 +1,50 @@
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+merged size without overlap : 14 14 192
+Merged: torch.Size([1, 192, 14, 14])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+merged size without overlap : 6 6 256
+Merged: torch.Size([1, 256, 6, 6])
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+Waiting for key data/img_174
+Rerunning data/img_174...
+torch.Size([1, 1000])
+Poll Time: 59.30316756699949
+Layer Times: [0.09516453099968203, 0.07848393299991585, 59.12951910299989]
+Store Push Time: 0.04125072300030297
+Store Pull Time: 57.919962920958824
+Merge Time: 0.0007917560001260426
+Split Time: 0.0002512229998501425
+Time: 59.63947943699986

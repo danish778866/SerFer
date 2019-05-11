@@ -1,0 +1,22 @@
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+Waiting for key warmup/150br1
+Rerunning warmup/150br1...
+merged size without overlap : 14 14 192
+Merged: torch.Size([1, 192, 14, 14])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+merged size without overlap : 6 6 256
+Merged: torch.Size([1, 256, 6, 6])
+torch.Size([1, 1000])
+Poll Time: 70.91444170299997
+Layer Times: [70.027134767, 0.09848792699995101, 0.788819009000008]
+Store Push Time: 0.35434765799971046
+Store Pull Time: 70.26260850999836
+Merge Time: 0.0012328110000225934
+Split Time: 0.0002277080000112619
+Time: 72.12517974399998

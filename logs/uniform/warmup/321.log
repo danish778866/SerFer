@@ -1,0 +1,50 @@
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+Waiting for key warmup/322tl1
+Rerunning warmup/322tl1...
+merged size without overlap : 14 14 192
+Merged: torch.Size([1, 192, 14, 14])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+merged size without overlap : 6 6 256
+Merged: torch.Size([1, 256, 6, 6])
+torch.Size([1, 1000])
+Poll Time: 84.55977503000008
+Layer Times: [83.70301682800005, 0.09883505200002674, 0.7579231500000105]
+Store Push Time: 0.2195049109999445
+Store Pull Time: 83.10539123296348
+Merge Time: 0.0014731490000485792
+Split Time: 0.00022371900001871836
+Time: 85.71567232099994

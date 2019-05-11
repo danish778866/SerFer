@@ -1,0 +1,20 @@
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+merged size without overlap : 14 14 192
+Merged: torch.Size([1, 192, 14, 14])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+torch.Size([1, 192, 8, 8])
+merged size without overlap : 6 6 256
+Merged: torch.Size([1, 256, 6, 6])
+torch.Size([1, 1000])
+Poll Time: 0.9566667489998508
+Layer Times: [0.09339202999990448, 0.08297819700010223, 0.7802965219998441]
+Store Push Time: 0.4886425539998527
+Store Pull Time: 0.9545123429979867
+Merge Time: 0.0007684960000915453
+Split Time: 0.00023259399995367858
+Time: 3.825432474000081

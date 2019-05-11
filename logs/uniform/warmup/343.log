@@ -1,0 +1,6 @@
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+torch.Size([1, 3, 127, 127])
+Waiting for key warmup/344tl1
+Rerunning warmup/344tl1...
