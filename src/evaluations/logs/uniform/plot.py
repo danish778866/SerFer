@@ -2,43 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.style as style
 
-#np.random.seed(19680801)
-#
-#mu = 200
-#sigma = 25
-#n_bins = 50
-#x = np.fromfile('test.log')
-#print(x)
-#
-#fig, ax = plt.subplots(figsize=(8, 4))
-#
-## plot the cumulative histogram
-#n, bins, patches = ax.hist(x, n_bins, density=True, histtype='step',
-#                           cumulative=True, label='Empirical')
-#
-## tidy up the figure
-#ax.grid(True)
-#ax.legend(loc='right')
-#ax.set_title('Cumulative step histograms')
-#ax.set_xlabel('Annual rainfall (mm)')
-#ax.set_ylabel('Likelihood of occurrence')
-#
-#plt.show()
-
-#x = np.fromfile('test.log', sep='\n')
-#print(x)
-#num_bins = 20
-#counts, bin_edges = np.histogram (x, bins=num_bins, density=True)
-#cdf = np.cumsum (counts)
-#plt.xticks(np.arange(0, 100, 4))
-#plt.plot (bin_edges[1:], cdf/cdf[-1])
-#plt.show()
-
-#x = np.fromfile('test.log', sep='\n')
-#y = np.arange(1, len(x) + 1, 1)
-#plt.plot(x, y)
-#plt.show()
-
 def plot_cdfs(files, title, xlabel, ylabel, labels=None):
     plt.set_cmap('copper')
     style.use('seaborn-poster') #sets the size of the charts
@@ -62,29 +25,22 @@ def plot_cdfs(files, title, xlabel, ylabel, labels=None):
     plt.tight_layout()
     plt.show()
 
-plot_cdfs(['merge_1000.log', 'split_1000.log'],  'Merge and Split microbenchmarks',
-         'Latency(s)', 'CDF', labels=['Merge', 'Split'])
+#plot_cdfs(['merge_1000.log', 'split_1000.log'],  'Merge and Split microbenchmarks',
+#         'Latency(s)', 'CDF', labels=['Merge', 'Split'])
 
 #plot_cdfs(['poll_1000.log'], 'Polling time for Poll Driver', 'Latency(s)', 'CDF')
 
 #plot_cdfs(['get_1000.log', 'set_1000.log'], ['Read', 'Write'],
 #         'Redis Read and Write microbenchmarks', 'Latency(s)', 'CDF')
 
-#plot_cdfs(['layer_1_1000.log', 'layer_2_1000.log', 'layer_3_1000.log'], ['Lambda Layer 1', 'Lambda Layer 2', 'Lambda Layer 3'],
-#         'Microbenchmarks for Lambda Layers', 'Latency(s)', 'CDF')
+#plot_cdfs(['layer_1_1000.log', 'layer_2_1000.log', 'layer_3_1000.log'], 
+#         'Microbenchmarks for Lambda Layers', 'Latency(s)', 'CDF', labels=['Lambda Layer 1', 'Lambda Layer 2', 'Lambda Layer 3'])
 
 #plot_cdfs(['test.log', 'test_2.log', 'test_3.log', 'test_4.log'], ['1000', '500', '250', '100'],
 #         'Latency CDFs for different bursts', 'Latency(s)', 'CDF')
-#
-#>>> 60000/146.0
-#410.958904109589
-#>>> 30000/112.0
-#267.85714285714283
-#>>> 15000/101.0
-#148.5148514851485
-#>>> 7500/96.0
-#78.125
-#>>>
+
+plot_cdfs(['latency_1000_sleep1.log', 'latency_1000_sleep0.2.log', 'latency_1000_sleep0.02.log', 'test.log'], 
+         'Latency for uniform traffic', 'Latency(s)', 'CDF', labels=['Sleep 1s', 'Sleep 200ms', 'Sleep 20ms', 'Burst 1000'])
 
 def plot_throughput():
     plt.set_cmap('copper')

@@ -62,17 +62,16 @@ def plot_cdfs(files, title, xlabel, ylabel, labels=None):
     plt.tight_layout()
     plt.show()
 
-plot_cdfs(['CSV_logs71455.354645799_10.log', 'CSV_logs71656.174285703_100.log','CSV_logs71765.808257858_200.log',
-           'CSV_logs72015.410869659_400.log'],  'Merge and Split microbenchmarks',
-         'Latency(s)', 'CDF', labels=['10','100', '200','400'])
+#plot_cdfs(['merge_1000.log', 'split_1000.log'],  'Merge and Split microbenchmarks',
+#         'Latency(s)', 'CDF', labels=['Merge', 'Split'])
 
 #plot_cdfs(['poll_1000.log'], 'Polling time for Poll Driver', 'Latency(s)', 'CDF')
 
 #plot_cdfs(['get_1000.log', 'set_1000.log'], ['Read', 'Write'],
 #         'Redis Read and Write microbenchmarks', 'Latency(s)', 'CDF')
 
-#plot_cdfs(['layer_1_1000.log', 'layer_2_1000.log', 'layer_3_1000.log'], ['Lambda Layer 1', 'Lambda Layer 2', 'Lambda Layer 3'],
-#         'Microbenchmarks for Lambda Layers', 'Latency(s)', 'CDF')
+plot_cdfs(['layer_1_1000.log', 'layer_2_1000.log', 'layer_3_1000.log'], 
+         'Microbenchmarks for Lambda Layers', 'Latency(s)', 'CDF', labels=['Lambda Layer 1', 'Lambda Layer 2', 'Lambda Layer 3'])
 
 #plot_cdfs(['test.log', 'test_2.log', 'test_3.log', 'test_4.log'], ['1000', '500', '250', '100'],
 #         'Latency CDFs for different bursts', 'Latency(s)', 'CDF')
